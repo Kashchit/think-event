@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { User, Menu, X, Calendar, MapPin, Users, Building, Search } from 'lucide-react';
+import { User, Menu, X, Calendar, MapPin, Users, Building, Search, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useNavigate } from 'react-router-dom';
@@ -87,6 +87,17 @@ const Header = () => {
                 <span>{item.title}</span>
               </Button>
             ))}
+            {user && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="flex items-center space-x-2 text-purple-600 hover:text-purple-700 hover:bg-purple-50 transition-all"
+                onClick={() => handleNavigation('/events/create')}
+              >
+                <Plus className="h-4 w-4" />
+                <span>Create Event</span>
+              </Button>
+            )}
           </nav>
 
           {/* Search Bar */}
@@ -167,6 +178,15 @@ const Header = () => {
                     <span>{item.title}</span>
                   </button>
                 ))}
+                {user && (
+                  <button
+                    className="flex items-center space-x-3 w-full px-3 py-2 text-left text-purple-600 hover:text-purple-700 hover:bg-purple-50 rounded-lg transition-all"
+                    onClick={() => handleNavigation('/events/create')}
+                  >
+                    <Plus className="h-4 w-4" />
+                    <span>Create Event</span>
+                  </button>
+                )}
               </div>
 
               {/* Mobile Auth Buttons */}

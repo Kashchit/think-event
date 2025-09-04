@@ -21,6 +21,7 @@ import Signup from "./pages/Signup";
 import ForgotPassword from "./pages/ForgotPassword";
 import Profile from "./pages/Profile";
 import EventsCreate from "./pages/EventsCreate";
+import EventsEdit from "./pages/EventsEdit";
 import { AuthProvider } from "./contexts/AuthContext";
 
 const queryClient = new QueryClient();
@@ -54,6 +55,7 @@ const App = () => {
                 <Route path="/" element={<Index />} />
                 <Route path="/events" element={<Events />} />
                 <Route path="/events/create" element={<EventsCreate />} />
+                <Route path="/events/edit/:id" element={<EventsEdit />} />
                 <Route path="/event/:id" element={<EventDetails />} />
                 <Route path="/book/:id" element={<BookingPage />} />
                 <Route path="/venues" element={<Venues />} />

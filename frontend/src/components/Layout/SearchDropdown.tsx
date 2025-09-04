@@ -82,7 +82,7 @@ const SearchDropdown = () => {
 
       setLoading(true);
       try {
-        const response = await eventsAPI.getAll({ search: query.trim() });
+        const response = await eventsAPI.getAll({ search: query.trim(), limit: 5 });
         const events = response.data.events || [];
         
         const searchResults: SearchResult[] = events.slice(0, 5).map(event => ({
@@ -95,26 +95,17 @@ const SearchDropdown = () => {
           image: event.images?.[0]
         }));
 
-        // Add venue results (mock data for now)
-        const venueResults: SearchResult[] = [
-          {
-            id: 1001,
-            title: 'Dashrath Stadium',
-            type: 'venue',
-            location: 'Kathmandu',
-            image: 'photo-1571019613454-1cb2f99b2d8b'
-          },
-          {
-            id: 1002,
-            title: 'City Hall Kathmandu',
-            type: 'venue',
-            location: 'Kathmandu',
-            image: 'photo-1493397212122-2b85dda8106b'
-          }
-        ].filter(venue => 
-          venue.title.toLowerCase().includes(query.toLowerCase()) ||
-          venue.location.toLowerCase().includes(query.toLowerCase())
-        );
+        // Add venue results from API
+        const venuesResponse = await eventsAPI.getVenues({ search: query.trim(), limit: 3 });
+        const venues = venuesResponse.data?.venues || [];
+        
+        const venueResults: SearchResult[] = venues.map(venue => ({
+          id: venue.id,
+          title: venue.name,
+          type: 'venue' as const,
+          location: venue.city,
+          image: venue.images?.[0] || 'photo-1493397212122-2b85dda8106b'
+        }));
 
         setResults([...searchResults, ...venueResults]);
         setShowDropdown(true);
@@ -135,7 +126,7 @@ const SearchDropdown = () => {
     if (result.type === 'event') {
       navigate(`/event/${result.id}`);
     } else {
-      navigate(`/venues`);
+      navigate(`/venues?venue=${result.id}`);
     }
     setShowDropdown(false);
     setQuery('');

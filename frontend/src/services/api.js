@@ -28,11 +28,13 @@ const apiRequest = async (endpoint, options = {}) => {
   };
 
   try {
-    const response = await fetch(`${API_URL}${endpoint}`, config);
-    return await handleResponse(response);
+    return await retryRequest(async () => {
+      const response = await fetch(`${API_URL}${endpoint}`, config);
+      return await handleResponse(response);
+    });
   } catch (error) {
-    console.error(`API Error (${endpoint}):`, error);
-    throw error;
+    const friendlyError = handleAPIError(error, endpoint);
+    throw new Error(friendlyError);
   }
 };
 
@@ -84,6 +86,9 @@ export const eventsAPI = {
     const queryString = new URLSearchParams(params).toString();
     return apiRequest(`/api/events${queryString ? `?${queryString}` : ''}`);
   },
+  
+  getMyEvents: () => apiRequest('/api/events/my/events'),
+  
   create: (formData) => {
     const token = getAuthToken();
     return fetch(`${API_URL}/api/events`, {
@@ -96,6 +101,15 @@ export const eventsAPI = {
   },
   
   getById: (id) => apiRequest(`/api/events/${id}`),
+  
+  update: (id, eventData) => apiRequest(`/api/events/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(eventData),
+  }),
+  
+  delete: (id) => apiRequest(`/api/events/${id}`, {
+    method: 'DELETE',
+  }),
   
   getCategories: () => apiRequest('/api/events/categories'),
   
@@ -144,3 +158,4 @@ export default {
   bookings: bookingsAPI,
   health: healthCheck,
 };
+import { handleAPIError, retryRequest } from '../utils/errorHandler.js';

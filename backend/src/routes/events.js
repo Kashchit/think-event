@@ -29,6 +29,15 @@ router.get('/venues', eventController.getVenues);
 router.get('/:id', eventController.getEventById);
 router.get('/venues/:id', eventController.getVenueById);
 
+// Get user's own events
+router.get('/my/events', [
+  authenticateToken,
+], (req, res) => {
+  // Redirect to main events endpoint with organizer filter
+  req.query.organizer_id = req.user.id;
+  eventController.getEvents(req, res);
+});
+
 // Protected routes (authenticated users)
 router.post('/', [
   authenticateToken,
@@ -47,6 +56,14 @@ router.post('/', [
 
 router.put('/:id', [
   authenticateToken,
+  commonValidations.eventTitle,
+  commonValidations.eventDescription,
+  body('category_id').optional().isInt().withMessage('Category ID must be an integer'),
+  body('venue_id').optional().isInt().withMessage('Venue ID must be an integer'),
+  commonValidations.eventDate,
+  commonValidations.eventTime,
+  commonValidations.eventPrice,
+  commonValidations.eventSeats,
   handleValidationErrors
 ], eventController.updateEvent);
 

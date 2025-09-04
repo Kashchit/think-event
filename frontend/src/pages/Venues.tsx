@@ -176,6 +176,10 @@ const Venues = () => {
               <VenueBookingForm 
                 venue={selectedVenue}
                 onClose={() => setShowBookingForm(false)}
+                onBookingSubmit={async (bookingData) => {
+                  console.log('Venue booking submitted:', bookingData);
+                  // Here you would typically send the booking request to your backend
+                }}
               />
             </div>
           </div>

@@ -71,14 +71,17 @@ export const commonValidations = {
     .withMessage('Price must be a positive number'),
   
   eventSeats: body('total_seats')
+    .optional()
     .isInt({ min: 1 })
     .withMessage('Total seats must be a positive integer'),
   
   eventDate: body('start_date')
+    .optional()
     .isISO8601()
     .withMessage('Start date must be a valid date'),
   
   eventTime: body('start_time')
+    .optional()
     .matches(/^([01]?[0-9]|2[0-3]):[0-5][0-9](?::[0-5][0-9])?$/)
     .withMessage('Start time must be in HH:MM or HH:MM:SS format'),
   

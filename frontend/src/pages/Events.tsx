@@ -5,8 +5,10 @@ import { Link } from 'react-router-dom';
 import EventFilters from '@/components/Events/EventFilters';
 import EventCard from '@/components/Events/EventCard';
 import { eventsAPI } from '@/services/api';
+import { useAuth } from '@/contexts/AuthContext';
 
 const Events = () => {
+  const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -123,12 +125,14 @@ const Events = () => {
                 Showing {events.length} event{events.length !== 1 ? 's' : ''}
                 {Object.keys(filters).length > 0 && ' with applied filters'}
               </p>
-              <Link
-                to="/events/create"
-                className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg"
-              >
-                Create Event
-              </Link>
+              {user && (
+                <Link
+                  to="/events/create"
+                  className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg"
+                >
+                  Create Event
+                </Link>
+              )}
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

@@ -37,7 +37,7 @@ const EventFilters: React.FC<EventFiltersProps> = ({ onFilterChange }) => {
     const filters: any = {};
     
     if (categories.length > 0) {
-      filters.category = categories.join(',');
+      filters.category = categories.map(c => c.toLowerCase()).join(',');
     }
     if (location) {
       filters.location = location;

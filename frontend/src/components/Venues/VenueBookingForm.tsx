@@ -15,10 +15,11 @@ interface VenueBookingFormProps {
     capacity: number;
     description: string;
   };
-  onBookingSubmit: (bookingData: any) => void;
+  onBookingSubmit?: (bookingData: any) => void;
+  onClose?: () => void;
 }
 
-const VenueBookingForm: React.FC<VenueBookingFormProps> = ({ venue, onBookingSubmit }) => {
+const VenueBookingForm: React.FC<VenueBookingFormProps> = ({ venue, onBookingSubmit, onClose }) => {
   const [formData, setFormData] = useState({
     eventName: '',
     eventType: '',
@@ -61,11 +62,20 @@ const VenueBookingForm: React.FC<VenueBookingFormProps> = ({ venue, onBookingSub
     setLoading(true);
     
     try {
-      await onBookingSubmit({
-        ...formData,
-        venueId: venue.id,
-        venueName: venue.name
-      });
+      if (onBookingSubmit) {
+        await onBookingSubmit({
+          ...formData,
+          venueId: venue.id,
+          venueName: venue.name
+        });
+      }
+      
+      // Show success message
+      alert('Booking request submitted successfully! We will contact you soon.');
+      
+      if (onClose) {
+        onClose();
+      }
     } catch (error) {
       console.error('Booking submission error:', error);
     } finally {
@@ -256,7 +266,7 @@ const VenueBookingForm: React.FC<VenueBookingFormProps> = ({ venue, onBookingSub
         </div>
 
         <div className="flex justify-end space-x-4 pt-6 border-t">
-          <Button type="button" variant="outline">
+          <Button type="button" variant="outline" onClick={onClose}>
             Cancel
           </Button>
           <Button type="submit" disabled={loading} className="bg-purple-600 hover:bg-purple-700">

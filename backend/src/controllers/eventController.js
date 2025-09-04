@@ -12,12 +12,20 @@ export const getEvents = async (req, res) => {
       page = 1, 
       limit = 12,
       sortBy = 'start_date',
-      sortOrder = 'ASC'
+      sortOrder = 'ASC',
+      organizer_id
     } = req.query;
 
     let whereConditions = ['e.status = $1'];
     let queryParams = ['upcoming'];
     let paramIndex = 2;
+
+    // Organizer filter (for user's own events)
+    if (organizer_id) {
+      whereConditions.push(`e.organizer_id = $${paramIndex}`);
+      queryParams.push(organizer_id);
+      paramIndex++;
+    }
 
     // Category filter
     if (category) {
@@ -434,12 +442,36 @@ export const updateEvent = async (req, res) => {
 
     for (const [key, value] of Object.entries(updateFields)) {
       if (allowedFields.includes(key) && value !== undefined) {
+        // Handle special formatting for time fields
+        if (key === 'start_time' || key === 'end_time') {
+          const timeValue = value.includes(':') && value.length === 5 ? `${value}:00` : value;
+          updates.push(`${key} = $${paramIndex}`);
+          values.push(timeValue);
+        } else if (key === 'tags' && Array.isArray(value)) {
+          updates.push(`${key} = $${paramIndex}`);
+          values.push(value);
+        } else {
+          updates.push(`${key} = $${paramIndex}`);
+          values.push(value);
+        }
         updates.push(`${key} = $${paramIndex}`);
         values.push(value);
         paramIndex++;
       }
     }
 
+    // Update available_seats if total_seats changed
+    if (updateFields.total_seats) {
+      const currentEvent = await query('SELECT total_seats, available_seats FROM events WHERE id = $1', [id]);
+      if (currentEvent.rows.length > 0) {
+        const current = currentEvent.rows[0];
+        const bookedSeats = current.total_seats - current.available_seats;
+        const newAvailableSeats = Math.max(0, updateFields.total_seats - bookedSeats);
+        updates.push(`available_seats = $${paramIndex}`);
+        values.push(newAvailableSeats);
+        paramIndex++;
+      }
+    }
     if (updates.length === 0) {
       return res.status(400).json({
         success: false,

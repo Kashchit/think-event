@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import Header from '@/components/Layout/Header';
@@ -10,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import MyBookings from '@/components/Profile/MyBookings';
+import MyEvents from '@/components/Profile/MyEvents';
 import { 
   User, 
   Mail, 
@@ -54,6 +56,7 @@ interface ProfileData {
 const Profile = () => {
   const { user, updateProfile, logout } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [isEditing, setIsEditing] = useState(false);
   const [profileData, setProfileData] = useState<ProfileData>({
     first_name: '',
@@ -79,6 +82,8 @@ const Profile = () => {
   const [uploadingImage, setUploadingImage] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Get initial tab from URL params
+  const initialTab = searchParams.get('tab') || 'personal';
   useEffect(() => {
     if (user) {
       setProfileData(prev => ({
@@ -320,11 +325,12 @@ const Profile = () => {
 
             {/* Right Content - Profile Details */}
             <div className="lg:col-span-3">
-              <Tabs defaultValue="personal" className="space-y-6">
-                <TabsList className="grid w-full grid-cols-4">
+              <Tabs defaultValue={initialTab} className="space-y-6">
+                <TabsList className="grid w-full grid-cols-5">
                   <TabsTrigger value="personal">Personal Info</TabsTrigger>
                   <TabsTrigger value="preferences">Preferences</TabsTrigger>
                   <TabsTrigger value="bookings">My Bookings</TabsTrigger>
+                  <TabsTrigger value="events">My Events</TabsTrigger>
                   <TabsTrigger value="security">Security</TabsTrigger>
                 </TabsList>
 
@@ -582,6 +588,11 @@ const Profile = () => {
                 {/* Bookings Tab */}
                 <TabsContent value="bookings">
                   <MyBookings />
+                </TabsContent>
+
+                {/* My Events Tab */}
+                <TabsContent value="events">
+                  <MyEvents />
                 </TabsContent>
 
                 {/* Security Tab */}

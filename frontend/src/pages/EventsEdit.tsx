@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import Header from '@/components/Layout/Header';
 import { eventsAPI } from '@/services/api';
-import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,11 +11,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowLeft } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
-const EventsCreate = () => {
+const EventsEdit = () => {
+  const { id } = useParams();
   const navigate = useNavigate();
-  const { user, loading } = useAuth();
+  const { user, loading: authLoading } = useAuth();
+  const [event, setEvent] = useState(null);
   const [categories, setCategories] = useState([]);
   const [venues, setVenues] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [form, setForm] = useState({
@@ -31,30 +34,71 @@ const EventsCreate = () => {
     currency: 'NPR',
     total_seats: '',
     tags: '',
+    status: 'upcoming'
   });
 
   useEffect(() => {
-    if (!loading && !user) {
+    if (!authLoading && !user) {
       navigate('/login');
       return;
     }
-    const loadMeta = async () => {
-      try {
-        const [cats, vens] = await Promise.all([
-          eventsAPI.getCategories(),
-          eventsAPI.getVenues(),
-        ]);
-        setCategories(cats.data || []);
-        setVenues(vens.data?.venues || []);
-      } catch (e) {
-        console.error(e);
+    if (id) {
+      loadEventData();
+    }
+  }, [id, user, authLoading, navigate]);
+
+  const loadEventData = async () => {
+    try {
+      setLoading(true);
+      const [eventRes, catsRes, venuesRes] = await Promise.all([
+        eventsAPI.getById(id),
+        eventsAPI.getCategories(),
+        eventsAPI.getVenues(),
+      ]);
+
+      if (eventRes.success) {
+        const eventData = eventRes.data;
+        
+        // Check if user is the organizer
+        if (eventData.organizer_id !== user?.id) {
+          setError('You can only edit your own events');
+          return;
+        }
+        
+        setEvent(eventData);
+        
+        // Populate form with existing data
+        setForm({
+          title: eventData.title || '',
+          description: eventData.description || '',
+          category_id: eventData.category_id || '',
+          venue_id: eventData.venue_id || '',
+          start_date: eventData.start_date ? eventData.start_date.split('T')[0] : '',
+          end_date: eventData.end_date ? eventData.end_date.split('T')[0] : '',
+          start_time: eventData.start_time || '',
+          end_time: eventData.end_time || '',
+          price: eventData.price || '',
+          currency: eventData.currency || 'NPR',
+          total_seats: eventData.total_seats || '',
+          tags: Array.isArray(eventData.tags) ? eventData.tags.join(', ') : '',
+          status: eventData.status || 'upcoming'
+        });
+      } else {
+        setError('Event not found');
       }
-    };
-    loadMeta();
-  }, [user, loading, navigate]);
+
+      setCategories(catsRes.data || []);
+      setVenues(venuesRes.data?.venues || []);
+    } catch (err) {
+      console.error('Error loading event data:', err);
+      setError('Failed to load event data');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value } = e.target as any;
+    const { name, value } = e.target;
     setForm(prev => ({ ...prev, [name]: value }));
   };
 
@@ -75,39 +119,61 @@ const EventsCreate = () => {
       setError(validation);
       return;
     }
+
     try {
       setSubmitting(true);
       setError(null);
-      const fd = new FormData();
-      fd.append('title', form.title);
-      fd.append('description', form.description);
-      fd.append('category_id', String(form.category_id));
-      fd.append('venue_id', String(form.venue_id));
-      fd.append('start_date', form.start_date);
-      fd.append('end_date', form.end_date || form.start_date);
-      fd.append('start_time', form.start_time);
-      if (form.end_time) fd.append('end_time', form.end_time);
-      if (form.price) fd.append('price', String(form.price));
-      fd.append('currency', form.currency || 'NPR');
-      fd.append('total_seats', String(form.total_seats));
-      if (form.tags) fd.append('tags', form.tags);
-
-      const res = await eventsAPI.create(fd);
-      if (res.success) {
+      
+      const data = await eventsAPI.update(id, {
+        ...form,
+        tags: form.tags ? form.tags.split(',').map(t => t.trim()).filter(Boolean) : []
+      });
+      
+      if (data.success) {
         toast({
-          title: "Event Created",
-          description: "Your event has been created successfully.",
+          title: "Event Updated",
+          description: "Your event has been updated successfully.",
         });
-        navigate('/events');
+        navigate('/profile?tab=events');
       } else {
-        setError(res.message || 'Failed to create event');
+        setError(data.message || 'Failed to update event');
       }
     } catch (err: any) {
-      setError(err.message || 'Failed to create event');
+      setError(err.message || 'Failed to update event');
     } finally {
       setSubmitting(false);
     }
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Header />
+        <div className="container mx-auto px-4 py-8">
+          <div className="text-center py-12">
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+            <p className="mt-2 text-gray-600">Loading event...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error && !event) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Header />
+        <div className="container mx-auto px-4 py-8">
+          <div className="text-center py-12">
+            <p className="text-red-600 mb-4">{error}</p>
+            <Button onClick={() => navigate('/profile?tab=events')}>
+              Back to My Events
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -115,30 +181,19 @@ const EventsCreate = () => {
       <div className="container mx-auto px-4 py-8">
         <Button 
           variant="ghost" 
-          onClick={() => navigate('/events')}
+          onClick={() => navigate('/profile?tab=events')}
           className="mb-6"
         >
           <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to Events
+          Back to My Events
         </Button>
-
-        {!user && !loading && (
-          <Card className="mb-6">
-            <CardContent className="p-6">
-              <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 rounded-lg p-4">
-                <p className="text-sm">You must be logged in to create an event. <a href="/login" className="underline">Log in</a></p>
-              </div>
-            </CardContent>
-          </Card>
-        )}
 
         <Card>
           <CardHeader>
             <CardTitle className="text-2xl flex items-center gap-2">
-              <span className="inline-flex h-8 w-8 items-center justify-center rounded bg-purple-100 text-purple-700">🎫</span>
-              Create Event
+              <span className="inline-flex h-8 w-8 items-center justify-center rounded bg-purple-100 text-purple-700">✏️</span>
+              Edit Event
             </CardTitle>
-            <p className="text-gray-600">Add details for your new event</p>
           </CardHeader>
           <CardContent>
             <form onSubmit={onSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -270,6 +325,22 @@ const EventsCreate = () => {
                 />
               </div>
 
+              <div>
+                <Label htmlFor="status">Event Status</Label>
+                <select 
+                  id="status"
+                  name="status" 
+                  value={form.status} 
+                  onChange={handleChange} 
+                  className="w-full border rounded px-3 py-2"
+                >
+                  <option value="upcoming">Upcoming</option>
+                  <option value="ongoing">Ongoing</option>
+                  <option value="completed">Completed</option>
+                  <option value="cancelled">Cancelled</option>
+                </select>
+              </div>
+
               <div className="col-span-1 md:col-span-2">
                 <Label htmlFor="tags">Tags (comma separated)</Label>
                 <Input 
@@ -291,7 +362,7 @@ const EventsCreate = () => {
                 <Button 
                   type="button"
                   variant="outline"
-                  onClick={() => navigate('/events')}
+                  onClick={() => navigate('/profile?tab=events')}
                 >
                   Cancel
                 </Button>
@@ -300,7 +371,7 @@ const EventsCreate = () => {
                   disabled={submitting} 
                   className="bg-purple-600 hover:bg-purple-700"
                 >
-                  {submitting ? 'Creating...' : 'Create Event'}
+                  {submitting ? 'Updating...' : 'Update Event'}
                 </Button>
               </div>
             </form>
@@ -311,4 +382,4 @@ const EventsCreate = () => {
   );
 };
 
-export default EventsCreate;
+export default EventsEdit;

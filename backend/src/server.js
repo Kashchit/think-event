@@ -70,7 +70,10 @@ app.get('/health', (req, res) => {
     success: true,
     message: 'Think-Events Backend is running',
     timestamp: new Date().toISOString(),
-    environment: config.nodeEnv
+    environment: config.nodeEnv,
+    version: '1.0.0',
+    uptime: process.uptime(),
+    memory: process.memoryUsage()
   });
 });
 
